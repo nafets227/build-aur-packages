@@ -11,8 +11,8 @@ RUN \
     pacman -Syu --noconfirm --needed sudo && \
     groupadd builder && \
     useradd -m -g builder builder && \
-    echo 'builder ALL = NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder_pacman
-
+    echo 'builder ALL = NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder_pacman && \
+    echo 'builder ALL = NOPASSWD: /usr/sbin/pacsync' >> /etc/sudoers.d/builder_pacman
 
 USER builder
 
