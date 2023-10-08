@@ -37,11 +37,46 @@ inputs:
       way it used to work before this flag has been made available
     required: false
     default: false
+  arch:
+    description: >
+      A string describing the target architecture of the packages to be
+      created. Typical values are amd64 and arm64.
+    required: false
+    default: "amd64"
 outputs:
   updated:
     description: >
       A String ("true" or "false") to tell if anything has been updated and thus may need to be
       uploaded. Always true if keep=false
+    value: ${{ steps.run.outputs.updated }}
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: composite
+  steps:
+    - name: Build Action container
+      id: buildcontainer
+      shell: bash
+      run: |
+        /usr/bin/docker build \
+        --platform=${{ inputs.arch }} \
+        -t build-aur-packages:local \
+        "${{ github.action_path }}"
+    - name: Run Action container
+      id: run
+      shell: bash
+      run: |
+        /usr/bin/docker run --rm \
+        --platform=${{ inputs.arch }} \
+        --name build-aur-packages-run \
+        --workdir /github/workspace \
+        -e "INPUT_PACKAGES=${{ inputs.packages }}" \
+        -e "INPUT_MISSING_PACMAN_DEPENDENCIES=${{ inputs.missing_pacman_dependencies }}" \
+        -e "INPUT_MISSING_AUR_DEPENDENCIES=${{ inputs.missing_aur_dependencies }}" \
+        -e "INPUT_REPONAME=${{ inputs.reponame }}" \
+        -e "INPUT_KEEP=${{ inputs.keep }}" \
+        -e "RUNNER_DEBUG" \
+        -e "GITHUB_WORKSPACE=/github/workspace" \
+        -e "GITHUB_OUTPUT=/dev/github.output" \
+        -v "/var/run/docker.sock":"/var/run/docker.sock" \
+        -v "${{ github.workspace }}":"/github/workspace" \
+        -v "$GITHUB_OUTPUT:/dev/github.output" \
+        build-aur-packages:local

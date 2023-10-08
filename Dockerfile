@@ -1,6 +1,16 @@
-FROM archlinux:base-devel
+# Remember some variables are defined by Docker.
+# For details see https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
+# Short Summary:
+# TARGETPLATFORM - platform of the build result. Eg linux/amd64, linux/arm/v7, windows/amd64.
+# TARGETOS - OS component of TARGETPLATFORM
+# TARGETARCH - architecture component of TARGETPLATFORM
+# TARGETVARIANT - variant component of TARGETPLATFORM
 
-COPY update_repository.sh /
+FROM archlinux:base-devel AS base-linux-amd64
+
+FROM menci/archlinuxarm:base-devel as base-linux-arm64
+
+FROM base-${TARGETOS}-${TARGETARCH}${TARGETVARIANT}
 
 # Create a local user for building since aur tools should be run as normal user.
 # Also update all packages (-u), so that the newly installed tools use up-to-date packages.
@@ -13,7 +23,6 @@ RUN \
     useradd -m -g builder builder && \
     echo 'builder ALL = NOPASSWD: ALL' > /etc/sudoers.d/builder_pacman
 
-
 USER builder
 
 # Build aurutils as unprivileged user.
@@ -23,7 +32,7 @@ RUN \
     tar xf aurutils.tar.gz && \
     cd aurutils && \
     makepkg --syncdeps --noconfirm && \
-    sudo pacman -U --noconfirm aurutils-*.pkg.tar.zst && \
+    sudo pacman -U --noconfirm aurutils-*.pkg.tar.* && \
     mkdir /home/builder/workspace
 
 USER root
@@ -32,3 +41,5 @@ USER root
 #       Use `sudo --user <user> <command>` to run a command as this user.
 
 CMD ["/update_repository.sh"]
+
+COPY update_repository.sh /
