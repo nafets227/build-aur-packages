@@ -16,11 +16,41 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Build Packages
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: "arm64"
+
+    - name: Build Packages amd64
       uses: ./  # Use action from the root of this repository
       with:
         packages: >
           go-do
+          ttf-monocode
 
-    - name: List generated Files
-      run: ls -1 > ${{ github.workspace }}/files.txt
+    - name: Build Packages arm64
+      uses: ./  # Use action from the root of this repository
+      with:
+        arch: "arm64"
+        arch-override: true
+        packages: >
+          go-do
+          ttf-monocode
+
+    - name: List and verify generated Files
+      run: |
+        ls -1 | tee ${{ github.workspace }}/files.txt
+        RC=0
+        if [ ! -f go-do-*-x86_64.pkg.tar* ] ; then
+          RC=1
+          echo "go-do-*-x86_64.pkg.tar* not found!"
+        fi
+        if [ ! -f ttf-monocode-*-any.pkg.tar* ] ; then
+          RC=1
+          echo "ttf-monocode-*-any.pkg.tar* not found!"
+        fi
+        if [ ! -f go-do-*-aarch64.pkg.tar* ] ; then
+          RC=1
+          echo "go-do-*-aarch64.pkg.tar* not found!"
+        fi
+        exit $RC
