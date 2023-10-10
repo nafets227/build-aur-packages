@@ -43,6 +43,11 @@ inputs:
       created. Typical values are amd64 and arm64.
     required: false
     default: "amd64"
+  arch-override:
+    description: >
+      A boolean.If set to true, any architecture setting in PKGDESC will be ignored.
+    required: false
+    default: false
 outputs:
   updated:
     description: >
@@ -73,6 +78,7 @@ runs:
         -e "INPUT_MISSING_AUR_DEPENDENCIES=${{ inputs.missing_aur_dependencies }}" \
         -e "INPUT_REPONAME=${{ inputs.reponame }}" \
         -e "INPUT_KEEP=${{ inputs.keep }}" \
+        -e "INPUT_ARCH_OVERRIDE=${{ inputs.arch-override }}" \
         -e "RUNNER_DEBUG" \
         -e "GITHUB_WORKSPACE=/github/workspace" \
         -e "GITHUB_OUTPUT=/dev/github.output" \

@@ -47,9 +47,10 @@ then
     if [ ! -z "$(ls $GITHUB_WORKSPACE)" ]
     then
         cp -a $GITHUB_WORKSPACE/* /home/builder/workspace/
-        chown -R builder:builder /home/builder/workspace/*
     fi
 fi
+
+chown -R builder:builder /home/builder/workspace
 
 # create an empty repository file
 sudo --user builder \
@@ -68,11 +69,21 @@ EOF
 # Sync repositories.
 pacman -Sy
 
+#overrride architecture if requested
+if [ "$INPUT_ARCH_OVERRIDE" == "true" ]
+then
+    aurparmarchoverrride="--ignore-arch"
+else
+    aurparmarchoverrride=""
+fi
+
 # Add the packages to the local repository.
 sudo --user builder \
     aur sync \
     --noconfirm --noview \
-    --database "$INPUT_REPONAME" --root /home/builder/workspace \
+    --database "$INPUT_REPONAME" \
+    --root /home/builder/workspace \
+    $aurparmarchoverrride \
     $packages_with_aur_dependencies
 
 if [ "$INPUT_KEEP" == "true" ] && 
