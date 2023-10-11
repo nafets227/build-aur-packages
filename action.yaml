@@ -30,6 +30,12 @@ inputs:
       Defaults to aurci2 for compatibility reasons.
     required: false
     default: 'aurci2'
+  repodir:
+    description: >
+      A string containing the subdirectory under GITHUB_WORKSPACE where
+      the packages will be stored. Can be empty, as per default.
+    required: false
+    default: ''
   keep:
     description: >
       A Boolean to tell if existing flags from github workspace directory
@@ -77,6 +83,7 @@ runs:
         -e "INPUT_MISSING_PACMAN_DEPENDENCIES=${{ inputs.missing_pacman_dependencies }}" \
         -e "INPUT_MISSING_AUR_DEPENDENCIES=${{ inputs.missing_aur_dependencies }}" \
         -e "INPUT_REPONAME=${{ inputs.reponame }}" \
+        -e "INPUT_REPODIR=${{ inputs.repodir }}" \
         -e "INPUT_KEEP=${{ inputs.keep }}" \
         -e "INPUT_ARCH_OVERRIDE=${{ inputs.arch-override }}" \
         -e "RUNNER_DEBUG" \
