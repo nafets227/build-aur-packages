@@ -20,7 +20,7 @@ FROM base-${TARGETOS}-${TARGETARCH}${TARGETVARIANT}
 #       base image).
 RUN \
     pacman-key --init && \
-    pacman -Syu --noconfirm --needed sudo && \
+    pacman -Syu --noconfirm --needed sudo expect && \
     groupadd builder && \
     useradd -m -g builder builder && \
     echo 'builder ALL = NOPASSWD: ALL' > /etc/sudoers.d/builder_pacman
