@@ -54,8 +54,9 @@ chown -R builder:builder /home/builder/workspace
 
 # create an empty repository file
 sudo --user builder \
-    repo-add \
-    /home/builder/workspace/$INPUT_REPONAME.db.tar.gz
+    tar cvfz /home/builder/workspace/$INPUT_REPONAME.db.tar.gz -T /dev/null
+sudo --user builder \
+    ln -s $INPUT_REPONAME.db.tar.gz /home/builder/workspace/$INPUT_REPONAME.db
 
 ## Register the local repository with pacman.
 cat >> /etc/pacman.conf <<-EOF
