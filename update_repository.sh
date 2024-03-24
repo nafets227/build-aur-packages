@@ -57,10 +57,11 @@ if [ ! -f /home/builder/workspace/$INPUT_REPONAME.db.tar.gz ] ; then
     sudo --user builder \
         tar cvfz /home/builder/workspace/$INPUT_REPONAME.db.tar.gz -T /dev/null
 fi
-if [ ! -f /home/builder/workspace/$INPUT_REPONAME.db ] ; then
+if [ -f /home/builder/workspace/$INPUT_REPONAME.db ] ; then
+    rm /home/builder/workspace/$INPUT_REPONAME.db
+fi
 sudo --user builder \
     ln -s $INPUT_REPONAME.db.tar.gz /home/builder/workspace/$INPUT_REPONAME.db
-fi
 
 ## Register the local repository with pacman.
 cat >> /etc/pacman.conf <<-EOF
