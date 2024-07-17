@@ -9,7 +9,7 @@
 FROM archlinux:base-devel AS base-linux-amd64
 ENV ARCHLINUX_ARG=x86_64
 
-FROM menci/archlinuxarm:base-devel as base-linux-arm64
+FROM menci/archlinuxarm:base-devel AS base-linux-arm64
 ENV ARCHLINUX_ARG=aarch64
 
 FROM base-${TARGETOS}-${TARGETARCH}${TARGETVARIANT}
