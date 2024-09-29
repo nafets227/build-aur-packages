@@ -50,17 +50,18 @@ then
     fi
 fi
 
-chown -R builder:builder /home/builder/workspace
+chown -R builder:alpm /home/builder/workspace /home/builder
+chmod g+rx /home/builder
 
 # create an empty repository file
 if [ ! -f /home/builder/workspace/$INPUT_REPONAME.db.tar.gz ] ; then
-    sudo --user builder \
+    sudo --user builder --group alpm \
         tar cvfz /home/builder/workspace/$INPUT_REPONAME.db.tar.gz -T /dev/null
 fi
 if [ -f /home/builder/workspace/$INPUT_REPONAME.db ] ; then
     rm /home/builder/workspace/$INPUT_REPONAME.db
 fi
-sudo --user builder \
+sudo --user builder --group alpm \
     ln -s $INPUT_REPONAME.db.tar.gz /home/builder/workspace/$INPUT_REPONAME.db
 
 ## Register the local repository with pacman.
