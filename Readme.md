@@ -42,7 +42,6 @@ If a dependency from AUR is missing, you can pass this to
 
 The resulting repository information will be copied to the github workspace.
 
-
 # Maintenance
 
 ## Update GPG key
@@ -64,8 +63,6 @@ To achieve that, use (e.g. for `v1`):
     git push origin :refs/tags/v1
     git tag -fa v1
     git push origin master --tags
-
-
 
 # Development
 

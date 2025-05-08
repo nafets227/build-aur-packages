@@ -22,24 +22,24 @@ RUN \
 	# workaround, probably solved when both archlinux x86_64 and aarch64 update
 	# to gnupg 2.4.x
 	echo allow-weak-key-signatures >>/etc/pacman.d/gnupg/gpg.conf && \
-    \
-    pacman-key --init && \
-    pacman -Syu --noconfirm --needed sudo expect && \
-    groupadd builder && \
-    useradd -m -g builder builder && \
-    echo 'builder ALL = NOPASSWD: ALL' > /etc/sudoers.d/builder_pacman
+	\
+	pacman-key --init && \
+	pacman -Syu --noconfirm --needed sudo expect && \
+	groupadd builder && \
+	useradd -m -g builder builder && \
+	echo 'builder ALL = NOPASSWD: ALL' > /etc/sudoers.d/builder_pacman
 
 USER builder
 
 # Build aurutils as unprivileged user.
 RUN \
-    cd /tmp/ && \
-    curl --output aurutils.tar.gz https://aur.archlinux.org/cgit/aur.git/snapshot/aurutils.tar.gz && \
-    tar xf aurutils.tar.gz && \
-    cd aurutils && \
-    makepkg --syncdeps --noconfirm && \
-    sudo pacman -U --noconfirm aurutils-*.pkg.tar.* && \
-    mkdir /home/builder/workspace
+	cd /tmp/ && \
+	curl --output aurutils.tar.gz https://aur.archlinux.org/cgit/aur.git/snapshot/aurutils.tar.gz && \
+	tar xf aurutils.tar.gz && \
+	cd aurutils && \
+	makepkg --syncdeps --noconfirm && \
+	sudo pacman -U --noconfirm aurutils-*.pkg.tar.* && \
+	mkdir /home/builder/workspace
 
 USER root
 # Note: Github actions require the dockerfile to be run as root, so do not
