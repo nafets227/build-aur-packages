@@ -1,5 +1,37 @@
 #!/usr/bin/env bash
 
+function setup_pacman {
+	## Register the local repository with pacman.
+	cat >> /etc/pacman.conf <<-EOF
+
+		# local repository (required by aur tools to be set up)
+		[$INPUT_REPONAME]
+		SigLevel = Optional
+		Server = file:///home/builder/workspace
+		EOF
+
+	# create directories
+	mkdir -p /home/builder/workspace || return 1
+
+	# create an empty repository file
+	if [ ! -f /home/builder/workspace/$INPUT_REPONAME.db.tar.gz ] ; then
+		sudo --user builder --group alpm \
+			tar cvfz /home/builder/workspace/$INPUT_REPONAME.db.tar.gz -T /dev/null
+	fi
+	if [ -f /home/builder/workspace/$INPUT_REPONAME.db ] ; then
+		rm /home/builder/workspace/$INPUT_REPONAME.db
+	fi
+	sudo --user builder --group alpm \
+		ln -s $INPUT_REPONAME.db.tar.gz /home/builder/workspace/$INPUT_REPONAME.db
+
+	chown -R builder:alpm /home/builder/workspace /home/builder
+	chmod g+rx /home/builder
+
+	pacman -Sy
+
+	return 0
+}
+
 # Fail if anything goes wrong.
 set -e
 # Print each line before executing if Github arction debug logging is enabled
@@ -50,31 +82,7 @@ then
 	fi
 fi
 
-chown -R builder:alpm /home/builder/workspace /home/builder
-chmod g+rx /home/builder
-
-# create an empty repository file
-if [ ! -f /home/builder/workspace/$INPUT_REPONAME.db.tar.gz ] ; then
-	sudo --user builder --group alpm \
-		tar cvfz /home/builder/workspace/$INPUT_REPONAME.db.tar.gz -T /dev/null
-fi
-if [ -f /home/builder/workspace/$INPUT_REPONAME.db ] ; then
-	rm /home/builder/workspace/$INPUT_REPONAME.db
-fi
-sudo --user builder --group alpm \
-	ln -s $INPUT_REPONAME.db.tar.gz /home/builder/workspace/$INPUT_REPONAME.db
-
-## Register the local repository with pacman.
-cat >> /etc/pacman.conf <<-EOF
-
-# local repository (required by aur tools to be set up)
-[$INPUT_REPONAME]
-SigLevel = Optional
-Server = file:///home/builder/workspace
-EOF
-
-# Sync repositories.
-pacman -Sy
+setup_pacman
 
 #overrride architecture if requested
 if [ "$INPUT_ARCH_OVERRIDE" == "true" ]
