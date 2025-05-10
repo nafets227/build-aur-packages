@@ -32,6 +32,49 @@ function setup_pacman {
 	return 0
 }
 
+function import_pkgs {
+	# Copy workspace to local repo to avoid rebuilding and keep
+	# existing packages, even older versions
+	echo "Preserving existing files:"
+	ls -l $GITHUB_WORKSPACE/$INPUT_REPODIR 2>/dev/null || true # ignore error if dir does not exist (yet)
+	if [ ! -z "$(ls $GITHUB_WORKSPACE/$INPUT_REPODIR 2>/dev/null)" ]
+	then
+		cp -a $GITHUB_WORKSPACE/$INPUT_REPODIR/* /home/builder/workspace/
+	fi
+}
+
+function export_pkgs {
+	if [ "$INPUT_KEEP" == "true" ] && 
+		[ -n "$GITHUB_WORKSPACE" ] &&
+		cmp --quiet \
+			/home/builder/workspace/$INPUT_REPONAME.db \
+			$GITHUB_WORKSPACE/$INPUT_REPODIR/$INPUT_REPONAME.db
+	then
+		echo "updated=false" >>$GITHUB_OUTPUT
+	else
+		echo "updated=true" >>$GITHUB_OUTPUT
+
+		# Move the local repository to the workspace.
+		if [ -n "$GITHUB_WORKSPACE" ]
+		then
+			rm -f /home/builder/workspace/*.old
+			echo "Moving repository to github workspace"
+			mkdir -p $GITHUB_WORKSPACE/$INPUT_REPODIR
+			mv /home/builder/workspace/* $GITHUB_WORKSPACE/$INPUT_REPODIR/
+			# make sure that the .db/.files files are in place
+			# Note: Symlinks fail to upload, so copy those files
+			cd $GITHUB_WORKSPACE/$INPUT_REPODIR
+			rm $INPUT_REPONAME.db $INPUT_REPONAME.files
+			cp $INPUT_REPONAME.db.tar.gz $INPUT_REPONAME.db
+			cp $INPUT_REPONAME.files.tar.gz $INPUT_REPONAME.files
+		else
+			echo "No github workspace known (GITHUB_WORKSPACE is unset)."
+		fi
+	fi
+
+	return 0
+}
+
 # Fail if anything goes wrong.
 set -e
 # Print each line before executing if Github arction debug logging is enabled
@@ -72,14 +115,7 @@ fi
 
 if [ "$INPUT_KEEP" == "true" ]
 then
-	# Copy workspace to local repo to avoid rebuilding and keep
-	# existing packages, even older versions
-	echo "Preserving existing files:"
-	ls -l $GITHUB_WORKSPACE/$INPUT_REPODIR 2>/dev/null || true # ignore error if dir does not exist (yet)
-	if [ ! -z "$(ls $GITHUB_WORKSPACE/$INPUT_REPODIR 2>/dev/null)" ]
-	then
-		cp -a $GITHUB_WORKSPACE/$INPUT_REPODIR/* /home/builder/workspace/
-	fi
+	import_pkgs
 fi
 
 setup_pacman
@@ -101,30 +137,4 @@ sudo --user builder \
 	$aurparmarchoverrride \
 	$packages_with_aur_dependencies
 
-if [ "$INPUT_KEEP" == "true" ] && 
-   [ -n "$GITHUB_WORKSPACE" ] &&
-	cmp --quiet \
-		/home/builder/workspace/$INPUT_REPONAME.db \
-		$GITHUB_WORKSPACE/$INPUT_REPODIR/$INPUT_REPONAME.db
-then
-	echo "updated=false" >>$GITHUB_OUTPUT
-else
-	echo "updated=true" >>$GITHUB_OUTPUT
-
-	# Move the local repository to the workspace.
-	if [ -n "$GITHUB_WORKSPACE" ]
-	then
-		rm -f /home/builder/workspace/*.old
-		echo "Moving repository to github workspace"
-		mkdir -p $GITHUB_WORKSPACE/$INPUT_REPODIR
-		mv /home/builder/workspace/* $GITHUB_WORKSPACE/$INPUT_REPODIR/
-		# make sure that the .db/.files files are in place
-		# Note: Symlinks fail to upload, so copy those files
-		cd $GITHUB_WORKSPACE/$INPUT_REPODIR
-		rm $INPUT_REPONAME.db $INPUT_REPONAME.files
-		cp $INPUT_REPONAME.db.tar.gz $INPUT_REPONAME.db
-		cp $INPUT_REPONAME.files.tar.gz $INPUT_REPONAME.files
-	else
-		echo "No github workspace known (GITHUB_WORKSPACE is unset)."
-	fi
-fi
+export_pkgs
