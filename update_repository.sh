@@ -83,8 +83,97 @@ function export_pkgs {
 	return 0
 }
 
+function load_pkg_deps {
+	local pkgbase="$1"
+	local pkgdeps=() pkgdeplist p
+
+	printf -v pkgdeplist "%s\t%s\n" "$pkgbase" "$pkgbase"
+	pkgs_dependency+="$pkgdeplist"
+
+	mapfile -t pkgdeps < <(
+		#shellcheck disable=SC1090,SC2154
+		. "/home/builder/pkgsrc/$pkgbase/PKGBUILD" &&
+		printf '%s\n' "${depends[@]}" "${makedepends[@]}" \
+		|| printf "###ERROR###\n"
+		)
+
+	for p in "${pkgdeps[@]}" ; do
+		if [ -z "$p" ] ; then
+			continue
+		elif [ "$p" == "###ERROR###" ] ; then
+			return 1
+		elif pacman -S --print "$p" >/dev/null 2>/dev/null ; then
+			printf "ignoring pacman dependency %s of %s\n" "$p" "$pkgbase"
+		elif [[ "$p" =~ [\<\>=] ]] ; then
+			printf "ignoring versioned dependency %s of %s\n" "$p" "$pkgbase"
+		else
+			printf "resolving aur dependency %s of %s\n" "$p" "$pkgbase"
+			load_pkg "$p" || return 1
+			printf -v pkgdeplist "%s\t%s\n" "$pkgbase" "$p"
+			pkgs_dependency+="$pkgdeplist"
+		fi
+	done
+
+	return 0
+}
+
+function load_pkg {
+	local gitsrv="$1"
+	local gitpath="/"
+	local pkgbase
+	pkgbase="$(basename "$1" .git)" || return 1
+
+	if [ -f /home/builder/pkgsrc/"$pkgbase"/PKGBUILD ] ; then
+		# package already loaded
+		return 0
+	fi
+
+	mkdir -p /home/builder/git/"$pkgbase" /home/builder/pkgsrc/"$pkgbase" || return 1
+
+	# download from aur if only package name is given
+	if [ "${gitsrv:0:8}" != "https://" ] ; then
+		gitsrv=https://aur.archlinux.org/"$gitsrv".git
+	fi
+
+	while true ; do
+		printf "trying to clone %s from %s\n" "$pkgbase" "$gitsrv"
+		if git clone -c init.defaultBranch=master "$gitsrv" /home/builder/git/"$pkgbase" ; then
+			# success
+			break
+		else
+			# failed -> retry
+			gitpath="/$(basename "$gitsrv")$gitpath"
+			gitsrv="$(dirname "$gitsrv")"
+			if [ "$gitsrv" == "https:" ] || [ "$gitsrv" == "." ] ; then
+				# no clone worked, so URL is probably wrong
+				printf "Could not download package from %s\n" "$1"
+				return 1
+			fi
+		fi
+	done
+
+	if [ ! -d /home/builder/git/"$pkgbase"/"$gitpath" ] ; then
+		printf "Cloned %s from %s, but path %s does not exist. Aborting.\n" \
+			"$pkgbase" "$gitsrv" "$gitpath"
+		return 1
+	fi
+
+	mv \
+		/home/builder/git/"$pkgbase"/"$gitpath"/* \
+		/home/builder/git/"$pkgbase"/"$gitpath"/.* \
+		/home/builder/pkgsrc/"$pkgbase" \
+	|| return 1
+
+	printf "Loaded package from %s at %s\n" "$gitsrv" "$gitpath"
+
+	load_pkg_deps "$pkgbase" || return 1
+
+	return 0
+}
+
 function build {
-	local inp_pkgs inp_addpkg_aur inp_addpkg_pacman pkgs_aur
+	local inp_pkgs inp_addpkg_aur inp_addpkg_pacman pkgs_bydep pkgs_dependency
+	local pkgfiles=()
 
 	# remove newlines from any input parameters
 	inp_pkgs="${INPUT_PACKAGES//$'\n'/ }"
@@ -97,21 +186,6 @@ function build {
 	printf "Name of pacman repository: %s\n" "$INPUT_REPONAME"
 	printf "Keep existing packages: %s\n" "$INPUT_KEEP"
 
-	#shellcheck disable=SC2086
-	# vars intentionally expand to >1 words
-	pkgs_aur="$(
-		aur depends --pkgname $inp_pkgs $inp_addpkg_aur
-		)"
-	pkgs_aur="${pkgs_aur//$'\n'/ }"
-	for f in $inp_pkgs $inp_addpkg_aur ; do
-		if [ "${pkgs_aur/*${f}*/FOUND}" != "FOUND" ] ; then
-			printf "ERROR: Package %s not found.\n" "$f"
-			exit 1
-		fi
-	done
-	printf "AUR Packages to install (including dependencies): %s\n" \
-		"$pkgs_aur"
-
 	# Check for optional missing pacman dependencies to install.
 	if [ -n "$inp_addpkg_pacman" ] ; then
 		printf "Additional Pacman packages to install: %s\n" \
@@ -121,22 +195,53 @@ function build {
 		sudo pacman --needed --noconfirm -S $inp_addpkg_pacman
 	fi
 
+	pkgs_dependency=""
+	for f in $inp_pkgs $inp_addpkg_aur ;
+	do
+		load_pkg "$f" || exit 1
+	done
+
 	#overrride architecture if requested
 	if [ "$INPUT_ARCH_OVERRIDE" == "true" ] ; then
-		aurparmarchoverrride="--ignore-arch"
+		aurparmarchoverrride="--ignorearch"
 	else
 		aurparmarchoverrride=""
 	fi
 
-	# Add the packages to the local repository.
-	#shellcheck disable=SC2086
-	# vars intentionally expand to >1 words
-	aur sync \
-		--noconfirm --noview \
-		--database "$INPUT_REPONAME" \
-		--root /home/builder/workspace \
-		$aurparmarchoverrride \
-		$pkgs_aur
+	mapfile -t pkgs_bydep < <(
+		set -o pipefail
+		tsort <<<"$pkgs_dependency" | tac \
+		|| printf "###ERROR###\n"
+		)
+
+	for p in "${pkgs_bydep[@]}" ; do
+		if [ "$p" == "###ERROR###" ] ; then
+			return 1
+		fi
+		makepkg \
+			--syncdeps \
+			--dir "/home/builder/pkgsrc/$p" \
+			--noconfirm \
+			$aurparmarchoverrride
+		mapfile -t pkgfiles < <(
+			makepkg \
+				--dir "/home/builder/pkgsrc/$p" \
+				--packagelist \
+				OPTIONS=-debug \
+				$aurparmarchoverrride \
+			|| printf "###ERROR###\n"
+			)
+		for pres in "${pkgfiles[@]}" ; do
+			if [ "$pres" == "###ERROR###" ] ; then
+				return 1
+			fi
+		done
+		cp -a "${pkgfiles[@]}" /home/builder/workspace
+		repo-add \
+			"/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" \
+			"${pkgfiles[@]}"
+		sudo pacsync "$INPUT_REPONAME"
+	done
 
 	return 0
 }
