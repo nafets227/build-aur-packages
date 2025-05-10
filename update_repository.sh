@@ -35,7 +35,7 @@ function setup_pacman {
 function import_pkgs {
 	# Copy workspace to local repo to avoid rebuilding and keep
 	# existing packages, even older versions
-	echo "Preserving existing files:"
+	printf "Preserving existing files:\n"
 	# ignore error if dir does not exist (yet)
 	ls -l "$GITHUB_WORKSPACE/$INPUT_REPODIR" 2>/dev/null || true
 	if [ -n "$(ls "$GITHUB_WORKSPACE/$INPUT_REPODIR" 2>/dev/null)" ] ; then
@@ -50,14 +50,14 @@ function export_pkgs {
 			"/home/builder/workspace/$INPUT_REPONAME.db" \
 			"$GITHUB_WORKSPACE/$INPUT_REPODIR/$INPUT_REPONAME.db"
 	then
-		echo "updated=false" >>"$GITHUB_OUTPUT"
+		printf "updated=false\n" >>"$GITHUB_OUTPUT"
 	else
-		echo "updated=true" >>"$GITHUB_OUTPUT"
+		printf "updated=true\n" >>"$GITHUB_OUTPUT"
 
 		# Move the local repository to the workspace.
 		if [ -n "$GITHUB_WORKSPACE" ] ; then
 			rm -f /home/builder/workspace/*.old
-			echo "Moving repository to github workspace"
+			printf "Moving repository to github workspace\n"
 			mkdir -p "$GITHUB_WORKSPACE/$INPUT_REPODIR"
 			mv /home/builder/workspace/* "$GITHUB_WORKSPACE/$INPUT_REPODIR/"
 			# make sure that the .db/.files files are in place
@@ -67,7 +67,7 @@ function export_pkgs {
 			cp "$INPUT_REPONAME.db.tar.gz" "$INPUT_REPONAME.db"
 			cp "$INPUT_REPONAME.files.tar.gz" "$INPUT_REPONAME.files"
 		else
-			echo "No github workspace known (GITHUB_WORKSPACE is unset)."
+			printf "No github workspace known (GITHUB_WORKSPACE is unset).\n"
 		fi
 	fi
 
@@ -81,10 +81,10 @@ function build {
 	INPUT_MISSING_PACMAN_DEPENDENCIES="${INPUT_MISSING_PACMAN_DEPENDENCIES//$'\n'/ }"
 
 	# Get list of all packages with dependencies to install.
-	echo "AUR Packages requested to install: $INPUT_PACKAGES"
-	echo "AUR Packages to fix missing dependencies: $INPUT_MISSING_AUR_DEPENDENCIES"
-	echo "Name of pacman repository: $INPUT_REPONAME"
-	echo "Keep existing packages: $INPUT_KEEP"
+	printf "AUR Packages requested to install: %s/n" "$INPUT_PACKAGES"
+	printf "AUR Packages to fix missing dependencies: %s\n" "$INPUT_MISSING_AUR_DEPENDENCIES"
+	printf "Name of pacman repository: %s\n" "$INPUT_REPONAME"
+	printf "Keep existing packages: %s\n" "$INPUT_KEEP"
 
 	#shellcheck disable=SC2086
 	# vars intentionally expand to >1 words
@@ -94,15 +94,15 @@ function build {
 	packages_with_aur_dependencies="${packages_with_aur_dependencies//$'\n'/ }"
 	for f in $INPUT_PACKAGES $INPUT_MISSING_AUR_DEPENDENCIES ; do
 		if [ "${packages_with_aur_dependencies/*${f}*/FOUND}" != "FOUND" ] ; then
-			echo "ERROR: Package $f not found."
+			printf "ERROR: Package %s not found.\n" "$f"
 			exit 1
 		fi
 	done
-	echo "AUR Packages to install (including dependencies): $packages_with_aur_dependencies"
+	printf "AUR Packages to install (including dependencies): %s\n" "$packages_with_aur_dependencies"
 
 	# Check for optional missing pacman dependencies to install.
 	if [ -n "$INPUT_MISSING_PACMAN_DEPENDENCIES" ] ; then
-		echo "Additional Pacman packages to install: $INPUT_MISSING_PACMAN_DEPENDENCIES"
+		printf "Additional Pacman packages to install: %s\n" "$INPUT_MISSING_PACMAN_DEPENDENCIES"
 		#shellcheck disable=SC2086
 		# vars intentionally expand to >1 words
 		sudo pacman --noconfirm -S $INPUT_MISSING_PACMAN_DEPENDENCIES
