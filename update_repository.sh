@@ -44,68 +44,81 @@ function import_pkgs {
 }
 
 function export_pkgs {
+	local updated
+
 	if [ "$INPUT_KEEP" == "true" ] &&
 		[ -n "$GITHUB_WORKSPACE" ] &&
 		cmp --quiet \
 			"/home/builder/workspace/$INPUT_REPONAME.db" \
 			"$GITHUB_WORKSPACE/$INPUT_REPODIR/$INPUT_REPONAME.db"
 	then
-		printf "updated=false\n" >>"$GITHUB_OUTPUT"
+		updated=false
 	else
-		printf "updated=true\n" >>"$GITHUB_OUTPUT"
+		updated=true
+	fi
 
+	if [ -n "$GITHUB_OUTPUT" ] ; then
+		printf "updated=%s\n" "$updated" >>"$GITHUB_OUTPUT"
+	fi
+
+	if [ -n "$GITHUB_WORKSPACE" ] && [ "$updated" == "true" ] ; then
+		printf "Updating workspace with Build results\n"
 		# Move the local repository to the workspace.
-		if [ -n "$GITHUB_WORKSPACE" ] ; then
-			rm -f /home/builder/workspace/*.old
-			printf "Moving repository to github workspace\n"
-			mkdir -p "$GITHUB_WORKSPACE/$INPUT_REPODIR"
-			mv /home/builder/workspace/* "$GITHUB_WORKSPACE/$INPUT_REPODIR/"
-			# make sure that the .db/.files files are in place
-			# Note: Symlinks fail to upload, so copy those files
-			cd "$GITHUB_WORKSPACE/$INPUT_REPODIR"
-			rm "$INPUT_REPONAME.db" "$INPUT_REPONAME.files"
-			cp "$INPUT_REPONAME.db.tar.gz" "$INPUT_REPONAME.db"
-			cp "$INPUT_REPONAME.files.tar.gz" "$INPUT_REPONAME.files"
-		else
-			printf "No github workspace known (GITHUB_WORKSPACE is unset).\n"
-		fi
+		rm -f /home/builder/workspace/*.old
+		printf "Moving repository to github workspace\n"
+		mkdir -p "$GITHUB_WORKSPACE/$INPUT_REPODIR"
+		mv /home/builder/workspace/* "$GITHUB_WORKSPACE/$INPUT_REPODIR/"
+		# make sure that the .db/.files files are in place
+		# Note: Symlinks fail to upload, so copy those files
+		cd "$GITHUB_WORKSPACE/$INPUT_REPODIR"
+		rm "$INPUT_REPONAME.db" "$INPUT_REPONAME.files"
+		cp "$INPUT_REPONAME.db.tar.gz" "$INPUT_REPONAME.db"
+		cp "$INPUT_REPONAME.files.tar.gz" "$INPUT_REPONAME.files"
+	elif [ -n "$GITHUB_WORKSPACE" ] ; then
+		printf "Not updating workspace (no updates)\n"
+	else
+		printf "No github workspace known (GITHUB_WORKSPACE is unset).\n"
 	fi
 
 	return 0
 }
 
 function build {
+	local inp_pkgs inp_addpkg_aur inp_addpkg_pacman pkgs_aur
+
 	# remove newlines from any input parameters
-	INPUT_PACKAGES="${INPUT_PACKAGES//$'\n'/ }"
-	INPUT_MISSING_AUR_DEPENDENCIES="${INPUT_MISSING_AUR_DEPENDENCIES//$'\n'/ }"
-	INPUT_MISSING_PACMAN_DEPENDENCIES="${INPUT_MISSING_PACMAN_DEPENDENCIES//$'\n'/ }"
+	inp_pkgs="${INPUT_PACKAGES//$'\n'/ }"
+	inp_addpkg_aur="${INPUT_MISSING_AUR_DEPENDENCIES//$'\n'/ }"
+	inp_addpkg_pacman="${INPUT_MISSING_PACMAN_DEPENDENCIES//$'\n'/ }"
 
 	# Get list of all packages with dependencies to install.
-	printf "AUR Packages requested to install: %s/n" "$INPUT_PACKAGES"
-	printf "AUR Packages to fix missing dependencies: %s\n" "$INPUT_MISSING_AUR_DEPENDENCIES"
+	printf "AUR Packages requested to install: %s/n" "$inp_pkgs"
+	printf "AUR Packages to fix missing dependencies: %s\n" "$inp_addpkg_aur"
 	printf "Name of pacman repository: %s\n" "$INPUT_REPONAME"
 	printf "Keep existing packages: %s\n" "$INPUT_KEEP"
 
 	#shellcheck disable=SC2086
 	# vars intentionally expand to >1 words
-	packages_with_aur_dependencies="$(
-		aur depends --pkgname $INPUT_PACKAGES $INPUT_MISSING_AUR_DEPENDENCIES
+	pkgs_aur="$(
+		aur depends --pkgname $inp_pkgs $inp_addpkg_aur
 		)"
-	packages_with_aur_dependencies="${packages_with_aur_dependencies//$'\n'/ }"
-	for f in $INPUT_PACKAGES $INPUT_MISSING_AUR_DEPENDENCIES ; do
-		if [ "${packages_with_aur_dependencies/*${f}*/FOUND}" != "FOUND" ] ; then
+	pkgs_aur="${pkgs_aur//$'\n'/ }"
+	for f in $inp_pkgs $inp_addpkg_aur ; do
+		if [ "${pkgs_aur/*${f}*/FOUND}" != "FOUND" ] ; then
 			printf "ERROR: Package %s not found.\n" "$f"
 			exit 1
 		fi
 	done
-	printf "AUR Packages to install (including dependencies): %s\n" "$packages_with_aur_dependencies"
+	printf "AUR Packages to install (including dependencies): %s\n" \
+		"$pkgs_aur"
 
 	# Check for optional missing pacman dependencies to install.
-	if [ -n "$INPUT_MISSING_PACMAN_DEPENDENCIES" ] ; then
-		printf "Additional Pacman packages to install: %s\n" "$INPUT_MISSING_PACMAN_DEPENDENCIES"
+	if [ -n "$inp_addpkg_pacman" ] ; then
+		printf "Additional Pacman packages to install: %s\n" \
+			"$inp_addpkg_pacman"
 		#shellcheck disable=SC2086
 		# vars intentionally expand to >1 words
-		sudo pacman --noconfirm -S $INPUT_MISSING_PACMAN_DEPENDENCIES
+		sudo pacman --needed --noconfirm -S $inp_addpkg_pacman
 	fi
 
 	#overrride architecture if requested
@@ -123,7 +136,7 @@ function build {
 		--database "$INPUT_REPONAME" \
 		--root /home/builder/workspace \
 		$aurparmarchoverrride \
-		$packages_with_aur_dependencies
+		$pkgs_aur
 
 	return 0
 }
@@ -139,11 +152,11 @@ fi
 if [ "$UID" == 0 ] ; then
 	# invoked as root. Lets do some setup and then restart as builder
 
+	setup_pacman
+
 	if [ "$INPUT_KEEP" == "true" ] ; then
 		import_pkgs
 	fi
-
-	setup_pacman
 
 	sudo --user builder --group alpm --preserve-env --set-home \
 		"${BASH_SOURCE[0]}" || exit 1
