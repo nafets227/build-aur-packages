@@ -1,7 +1,7 @@
 # `build-aur-packages`
 
-Github Action that builds AUR packages and provides the built packages as
-package repository in the github workspace.
+GitHub Action that builds AUR packages and provides the built packages as
+package repository in the GitHub workspace.
 From there, other actions can use the package repository to install packages or upload the repository to some share or ...
 
 See
@@ -28,7 +28,7 @@ jobs:
 
 This example wil build packages
 
-```
+```text
           azure-cli
           kwallet-git
           micronucleus-git
@@ -40,41 +40,48 @@ it to `missing_pacman_dependencies`.
 If a dependency from AUR is missing, you can pass this to
 `missing_aur_dependencies`.
 
-The resulting repository information will be copied to the github workspace.
+The resulting repository information will be copied to the GitHub workspace.
 
-# Maintenance
+## Maintenance
 
-## Update GPG key
+### Update GPG key
 
 It will be necessary to update the gpg key stored in this repository.
 To do so, run
 
+```shell
     gpg --export --armor 6BC26A17B9B7018A > gpg_key_6BC26A17B9B7018A.gpg.asc
+```
 
+### Update tag
 
-## Update tag
-
-The tags should only change if the API (i.e. the yaml description parameter for
+The tags should only change if the API (i.e. the YAML description parameter for
 the action) changes.
 Hence when the Dockerfile needs to be adapted because some package needs a fix,
 the tag(s) should be re-set to the commit fixing the issue.
 To achieve that, use (e.g. for `v1`):
 
+```shell
     git push origin :refs/tags/v1
     git tag -fa v1
     git push origin master --tags
+````
 
-# Development
+## Development
 
 To build a package and create the corresponding repository files, build the docker image
 
+```shell
     docker build -t builder .
+````
 
 then run it, passing the packages as environment variables.
 The names of the variables are derived from the `action.yaml`.
 
+```shell
     mkdir workspace
     docker run --rm -it \
         -v $(pwd)/workspace:/workspace \
         -e "GITHUB_WORKSPACE=/workspace" -e "INPUT_PACKAGES=go-do" \
         builder
+```

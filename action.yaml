@@ -1,3 +1,4 @@
+---
 name: "Build AUR package repository"
 description: >
     Build a given list of AUR packages and store them in a repository.

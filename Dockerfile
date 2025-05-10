@@ -6,6 +6,19 @@
 # TARGETARCH - architecture component of TARGETPLATFORM
 # TARGETVARIANT - variant component of TARGETPLATFORM
 
+#checkov:skip=CKV2_DOCKER_1: sudo is used intentionally
+#checkov:skip=CKV_DOCKER_2: HEALTHCHECK not useful for "batch" container
+#checkov:skip=CKV_DOCKER_7: using latest tag intentionally
+#checkov:skip=CKV_DOCKER_8: last user must be root for Github actions
+# hadolint global ignore=DL3002,DL3003,DL3004,DL3006,DL3007
+	# DL3002 warning: Last USER should not be root
+	# DL3003 warning: Use WORKDIR to switch to a directory
+	# DL3004 error: Do not use sudo as it leads to unpredictable behavior.
+	#        Use a tool like gosu to enforce root
+	# DL3006 warning: Always tag the version of an image explicitly
+	# DL3007 warning: Using latest is prone to errors if the image will ever
+	#        update. Pin the version explicitly to a release tag
+
 FROM archlinux:base-devel AS base-linux-amd64
 ENV ARCHLINUX_ARG=x86_64
 
@@ -40,6 +53,8 @@ RUN \
 	makepkg --syncdeps --noconfirm && \
 	sudo pacman -U --noconfirm aurutils-*.pkg.tar.* && \
 	mkdir /home/builder/workspace
+
+WORKDIR /home/builder
 
 USER root
 # Note: Github actions require the dockerfile to be run as root, so do not
