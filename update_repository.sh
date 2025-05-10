@@ -15,16 +15,14 @@ function setup_pacman {
 
 	# create an empty repository file
 	if [ ! -f "/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" ] ; then
-		sudo --user builder --group alpm \
-			tar cvfz "/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" \
-				-T /dev/null
+		tar cvfz "/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" \
+			-T /dev/null
 	fi
 	if [ -f "/home/builder/workspace/$INPUT_REPONAME.db" ] ; then
 		rm "/home/builder/workspace/$INPUT_REPONAME.db"
 	fi
-	sudo --user builder --group alpm \
-		ln -s "$INPUT_REPONAME.db.tar.gz" \
-			"/home/builder/workspace/$INPUT_REPONAME.db"
+	ln -s "$INPUT_REPONAME.db.tar.gz" \
+		"/home/builder/workspace/$INPUT_REPONAME.db"
 
 	chown -R builder:alpm /home/builder/workspace /home/builder
 	chmod g+rx /home/builder
@@ -107,7 +105,7 @@ function build {
 		echo "Additional Pacman packages to install: $INPUT_MISSING_PACMAN_DEPENDENCIES"
 		#shellcheck disable=SC2086
 		# vars intentionally expand to >1 words
-		pacman --noconfirm -S $INPUT_MISSING_PACMAN_DEPENDENCIES
+		sudo pacman --noconfirm -S $INPUT_MISSING_PACMAN_DEPENDENCIES
 	fi
 
 	#overrride architecture if requested
@@ -120,8 +118,7 @@ function build {
 	# Add the packages to the local repository.
 	#shellcheck disable=SC2086
 	# vars intentionally expand to >1 words
-	sudo --user builder \
-		aur sync \
+	aur sync \
 		--noconfirm --noview \
 		--database "$INPUT_REPONAME" \
 		--root /home/builder/workspace \
@@ -139,12 +136,19 @@ if [ "$RUNNER_DEBUG" == "1" ] ; then
 	set -x
 fi
 
-if [ "$INPUT_KEEP" == "true" ] ; then
-	import_pkgs
+if [ "$UID" == 0 ] ; then
+	# invoked as root. Lets do some setup and then restart as builder
+
+	if [ "$INPUT_KEEP" == "true" ] ; then
+		import_pkgs
+	fi
+
+	setup_pacman
+
+	sudo --user builder --group alpm --preserve-env --set-home \
+		"${BASH_SOURCE[0]}" || exit 1
+
+	export_pkgs
+else
+	build
 fi
-
-setup_pacman
-
-build
-
-export_pkgs
