@@ -24,7 +24,7 @@ function setup_pacman {
 	ln -s "$INPUT_REPONAME.db.tar.gz" \
 		"/home/builder/workspace/$INPUT_REPONAME.db"
 
-	chown -R builder:alpm /home/builder/workspace /home/builder
+	chown -R builder:alpm /home/builder
 	chmod g+rx /home/builder
 
 	pacman -Sy
