@@ -75,42 +75,63 @@ function export_pkgs {
 	return 0
 }
 
+function build {
+	# remove newlines from any input parameters
+	INPUT_PACKAGES="${INPUT_PACKAGES//$'\n'/ }"
+	INPUT_MISSING_AUR_DEPENDENCIES="${INPUT_MISSING_AUR_DEPENDENCIES//$'\n'/ }"
+	INPUT_MISSING_PACMAN_DEPENDENCIES="${INPUT_MISSING_PACMAN_DEPENDENCIES//$'\n'/ }"
+
+	# Get list of all packages with dependencies to install.
+	echo "AUR Packages requested to install: $INPUT_PACKAGES"
+	echo "AUR Packages to fix missing dependencies: $INPUT_MISSING_AUR_DEPENDENCIES"
+	echo "Name of pacman repository: $INPUT_REPONAME"
+	echo "Keep existing packages: $INPUT_KEEP"
+
+	packages_with_aur_dependencies="$(aur depends --pkgname $INPUT_PACKAGES $INPUT_MISSING_AUR_DEPENDENCIES)"
+	packages_with_aur_dependencies="${packages_with_aur_dependencies//$'\n'/ }"
+	for f in $INPUT_PACKAGES $INPUT_MISSING_AUR_DEPENDENCIES ;
+	do
+		if [ "${packages_with_aur_dependencies/*${f}*/FOUND}" != "FOUND" ]
+		then
+			echo "ERROR: Package $f not found."
+			exit 1
+		fi
+	done
+	echo "AUR Packages to install (including dependencies): $packages_with_aur_dependencies"
+
+	# Check for optional missing pacman dependencies to install.
+	if [ -n "$INPUT_MISSING_PACMAN_DEPENDENCIES" ]
+	then
+		echo "Additional Pacman packages to install: $INPUT_MISSING_PACMAN_DEPENDENCIES"
+		pacman --noconfirm -S $INPUT_MISSING_PACMAN_DEPENDENCIES
+	fi
+
+	#overrride architecture if requested
+	if [ "$INPUT_ARCH_OVERRIDE" == "true" ]
+	then
+		aurparmarchoverrride="--ignore-arch"
+	else
+		aurparmarchoverrride=""
+	fi
+
+	# Add the packages to the local repository.
+	sudo --user builder \
+		aur sync \
+		--noconfirm --noview \
+		--database "$INPUT_REPONAME" \
+		--root /home/builder/workspace \
+		$aurparmarchoverrride \
+		$packages_with_aur_dependencies
+
+	return 0
+}
+
 # Fail if anything goes wrong.
 set -e
 # Print each line before executing if Github arction debug logging is enabled
 if [ "$RUNNER_DEBUG" == "1" ] 
 then
 	set -x
-fi
-
-# remove newlines from any input parameters
-INPUT_PACKAGES="${INPUT_PACKAGES//$'\n'/ }"
-INPUT_MISSING_AUR_DEPENDENCIES="${INPUT_MISSING_AUR_DEPENDENCIES//$'\n'/ }"
-INPUT_MISSING_PACMAN_DEPENDENCIES="${INPUT_MISSING_PACMAN_DEPENDENCIES//$'\n'/ }"
-
-# Get list of all packages with dependencies to install.
-echo "AUR Packages requested to install: $INPUT_PACKAGES"
-echo "AUR Packages to fix missing dependencies: $INPUT_MISSING_AUR_DEPENDENCIES"
-echo "Name of pacman repository: $INPUT_REPONAME"
-echo "Keep existing packages: $INPUT_KEEP"
-
-packages_with_aur_dependencies="$(aur depends --pkgname $INPUT_PACKAGES $INPUT_MISSING_AUR_DEPENDENCIES)"
-packages_with_aur_dependencies="${packages_with_aur_dependencies//$'\n'/ }"
-for f in $INPUT_PACKAGES $INPUT_MISSING_AUR_DEPENDENCIES ;
-do
-	if [ "${packages_with_aur_dependencies/*${f}*/FOUND}" != "FOUND" ]
-	then
-		echo "ERROR: Package $f not found."
-		exit 1
-	fi
-done
-echo "AUR Packages to install (including dependencies): $packages_with_aur_dependencies"
-
-# Check for optional missing pacman dependencies to install.
-if [ -n "$INPUT_MISSING_PACMAN_DEPENDENCIES" ]
-then
-	echo "Additional Pacman packages to install: $INPUT_MISSING_PACMAN_DEPENDENCIES"
-	pacman --noconfirm -S $INPUT_MISSING_PACMAN_DEPENDENCIES
 fi
 
 if [ "$INPUT_KEEP" == "true" ]
@@ -120,21 +141,6 @@ fi
 
 setup_pacman
 
-#overrride architecture if requested
-if [ "$INPUT_ARCH_OVERRIDE" == "true" ]
-then
-	aurparmarchoverrride="--ignore-arch"
-else
-	aurparmarchoverrride=""
-fi
-
-# Add the packages to the local repository.
-sudo --user builder \
-	aur sync \
-	--noconfirm --noview \
-	--database "$INPUT_REPONAME" \
-	--root /home/builder/workspace \
-	$aurparmarchoverrride \
-	$packages_with_aur_dependencies
+build
 
 export_pkgs
