@@ -222,12 +222,14 @@ function build {
 			--syncdeps \
 			--dir "/home/builder/pkgsrc/$p" \
 			--noconfirm \
+			PKGDEST=/home/builder/workspace \
 			$aurparmarchoverrride
 		mapfile -t pkgfiles < <(
 			makepkg \
 				--dir "/home/builder/pkgsrc/$p" \
 				--packagelist \
 				OPTIONS=-debug \
+				PKGDEST=/home/builder/workspace \
 				$aurparmarchoverrride \
 			|| printf "###ERROR###\n"
 			)
