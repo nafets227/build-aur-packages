@@ -105,13 +105,36 @@ function load_pkg_deps {
 		elif pacman -S --print "$p" >/dev/null 2>/dev/null ; then
 			printf "ignoring pacman dependency %s of %s\n" "$p" "$pkgbase"
 		elif [[ "$p" =~ [\<\>=] ]] ; then
-			printf "ignoring versioned dependency %s of %s\n" "$p" "$pkgbase"
+			p=${p%%<*}
+			p=${p%%>*}
+			p=${p%%=*}
+			printf -v pkgdeplist "%s\t%s\n" "$pkgbase" "[${p}]"
+			pkgs_dependency+="$pkgdeplist"
 		else
 			printf "resolving aur dependency %s of %s\n" "$p" "$pkgbase"
 			load_pkg "$p" || return 1
 			printf -v pkgdeplist "%s\t%s\n" "$pkgbase" "$p"
 			pkgs_dependency+="$pkgdeplist"
 		fi
+	done
+
+	mapfile -t pkgprovides < <(
+		set -o pipefail
+		makepkg --printsrcinfo \
+			--dir /home/builder/pkgsrc/"$pkgbase" \
+		| sed -n 's/.*provides = //p' \
+		|| printf "###ERROR###\n"
+		)
+	# result e.g. "vdr-api=6"
+	for p in "${pkgprovides[@]}" ; do
+		if [ "$p" == "###ERROR###" ] ; then
+			return 1
+		fi
+		p=${p%%<*}
+		p=${p%%>*}
+		p=${p%%=*}
+		printf -v pkgdeplist "%s\t%s\n" "[${p}]" "$pkgbase"
+		pkgs_dependency+="$pkgdeplist"
 	done
 
 	return 0
@@ -217,13 +240,10 @@ function build {
 	for p in "${pkgs_bydep[@]}" ; do
 		if [ "$p" == "###ERROR###" ] ; then
 			return 1
+		elif [[ "$p" =~ \[.+\] ]] ; then
+			# ignore dummy package in brackets
+			continue
 		fi
-		makepkg \
-			--syncdeps \
-			--dir "/home/builder/pkgsrc/$p" \
-			--noconfirm \
-			PKGDEST=/home/builder/workspace \
-			$aurparmarchoverrride
 		mapfile -t pkgfiles < <(
 			makepkg \
 				--dir "/home/builder/pkgsrc/$p" \
@@ -236,9 +256,17 @@ function build {
 		for pres in "${pkgfiles[@]}" ; do
 			if [ "$pres" == "###ERROR###" ] ; then
 				return 1
+			elif [ ! -f "$pres" ] ; then
+				makepkg \
+					--syncdeps \
+					--dir "/home/builder/pkgsrc/$p" \
+					--noconfirm \
+					--force \
+					PKGDEST=/home/builder/workspace \
+					$aurparmarchoverrride
+				break
 			fi
 		done
-		cp -a "${pkgfiles[@]}" /home/builder/workspace
 		repo-add \
 			"/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" \
 			"${pkgfiles[@]}"
