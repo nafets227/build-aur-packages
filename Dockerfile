@@ -37,22 +37,12 @@ RUN \
 	echo allow-weak-key-signatures >>/etc/pacman.d/gnupg/gpg.conf && \
 	\
 	pacman-key --init && \
-	pacman -Syu --noconfirm --needed sudo expect && \
+	pacman -Syu --noconfirm --needed sudo expect pacutils git && \
 	groupadd builder && \
 	useradd -m -g builder builder && \
 	echo 'builder ALL = NOPASSWD: ALL' > /etc/sudoers.d/builder_pacman
 
 USER builder
-
-# Build aurutils as unprivileged user.
-RUN \
-	cd /tmp/ && \
-	curl --output aurutils.tar.gz https://aur.archlinux.org/cgit/aur.git/snapshot/aurutils.tar.gz && \
-	tar xf aurutils.tar.gz && \
-	cd aurutils && \
-	makepkg --syncdeps --noconfirm && \
-	sudo pacman -U --noconfirm aurutils-*.pkg.tar.* && \
-	mkdir /home/builder/workspace
 
 WORKDIR /home/builder
 
