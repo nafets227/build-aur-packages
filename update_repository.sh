@@ -264,13 +264,13 @@ function build {
 					--force \
 					PKGDEST=/home/builder/workspace \
 					$aurparmarchoverrride
+				repo-add \
+					"/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" \
+					"${pkgfiles[@]}"
+				sudo pacsync "$INPUT_REPONAME"
 				break
 			fi
 		done
-		repo-add \
-			"/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" \
-			"${pkgfiles[@]}"
-		sudo pacsync "$INPUT_REPONAME"
 	done
 
 	return 0
