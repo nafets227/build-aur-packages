@@ -27,8 +27,9 @@ ENV ARCHLINUX_ARG=aarch64
 
 FROM base-${TARGETOS}-${TARGETARCH}${TARGETVARIANT}
 
-# Create a local user for building since aur tools should be run as normal user.
-# Also update all packages (-u), so that the newly installed tools use up-to-date packages.
+# Create a local user for building since makepkg should be run as normal user.
+# Also update all packages (-u), so that the newly installed tools use
+# up-to-date packages.
 #       For example, gcc (in base-devel) fails if it uses an old glibc (from
 #       base image).
 RUN \

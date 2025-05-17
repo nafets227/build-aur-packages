@@ -9,7 +9,10 @@ inputs:
   packages:
     description: >
         A string with a space separated list of aur packages that should
-        be built and included in the repository.
+        be built and included in the repository. Besides simple names of
+        aur packages (e.g. "go-do") you can also specify any git repo incl.
+        path (e.g.
+        https://github.com/VDR4arch/vdr4arch/plugins/vdr-dummydevice)
     required: true
   missing_pacman_dependencies:
     description: >

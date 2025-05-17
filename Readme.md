@@ -1,11 +1,12 @@
-# `build-aur-packages`
+# build-aur-packages
 
 GitHub Action that builds AUR packages and provides the built packages as
 package repository in the GitHub workspace.
-From there, other actions can use the package repository to install packages or upload the repository to some share or ...
+From there, other actions can use the package repository to install packages
+or upload the repository to some share or ...
 
-See
-[here for a real world example](https://github.com/kopp/aurci2).
+See [nafets227/archPackages](https://github.com/nafets227/archPackages) for a
+real world example
 
 Usage:
 Use this in a job that allows to run dockers (e.g. linux machine) like this:
@@ -16,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Build Packages
-      uses: kopp/build-aur-packages@v1
+      uses: nafets227build-aur-packages
       with:
         packages: >
           azure-cli
@@ -41,31 +42,6 @@ If a dependency from AUR is missing, you can pass this to
 `missing_aur_dependencies`.
 
 The resulting repository information will be copied to the GitHub workspace.
-
-## Maintenance
-
-### Update GPG key
-
-It will be necessary to update the gpg key stored in this repository.
-To do so, run
-
-```shell
-    gpg --export --armor 6BC26A17B9B7018A > gpg_key_6BC26A17B9B7018A.gpg.asc
-```
-
-### Update tag
-
-The tags should only change if the API (i.e. the YAML description parameter for
-the action) changes.
-Hence when the Dockerfile needs to be adapted because some package needs a fix,
-the tag(s) should be re-set to the commit fixing the issue.
-To achieve that, use (e.g. for `v1`):
-
-```shell
-    git push origin :refs/tags/v1
-    git tag -fa v1
-    git push origin master --tags
-````
 
 ## Development
 
