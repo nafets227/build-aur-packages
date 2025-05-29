@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
 
+function makeList {
+	local arrname="$1" ; shift
+	local values="$*" trimValue
+
+	trimValue="${values//$'\n'/ }"
+	trimValue="${trimValue//$'\t'/ }"
+
+	eval "$arrname=($trimValue)"
+
+	return 0
+}
+
 function setup_pacman {
 	## Register the local repository with pacman.
 	cat >> /etc/pacman.conf <<-EOF
@@ -199,27 +211,25 @@ function build {
 	local pkgfiles=()
 
 	# remove newlines from any input parameters
-	inp_pkgs="${INPUT_PACKAGES//$'\n'/ }"
-	inp_addpkg_aur="${INPUT_MISSING_AUR_DEPENDENCIES//$'\n'/ }"
-	inp_addpkg_pacman="${INPUT_MISSING_PACMAN_DEPENDENCIES//$'\n'/ }"
+	makeList inp_pkgs "$INPUT_PACKAGES" &&
+	makeList inp_addpkg_aur "$INPUT_MISSING_AUR_DEPENDENCIES"
+	makeList inp_addpkg_pacman "$INPUT_MISSING_PACMAN_DEPENDENCIES"
 
 	# Get list of all packages with dependencies to install.
-	printf "AUR Packages requested to install: %s\n" "$inp_pkgs"
-	printf "AUR Packages to fix missing dependencies: %s\n" "$inp_addpkg_aur"
+	printf "AUR Packages requested to install: %s\n" "${inp_pkgs[*]}"
+	printf "AUR Packages to fix missing dependencies: %s\n" "${inp_addpkg_aur[*]}"
 	printf "Name of pacman repository: %s\n" "$INPUT_REPONAME"
 	printf "Keep existing packages: %s\n" "$INPUT_KEEP"
 
 	# Check for optional missing pacman dependencies to install.
-	if [ -n "$inp_addpkg_pacman" ] ; then
+	if [ -n "${inp_addpkg_pacman[*]}" ] ; then
 		printf "Additional Pacman packages to install: %s\n" \
-			"$inp_addpkg_pacman"
-		#shellcheck disable=SC2086
-		# vars intentionally expand to >1 words
-		sudo pacman --needed --noconfirm -S $inp_addpkg_pacman
+			"${inp_addpkg_pacman[*]}"
+		sudo pacman --needed --noconfirm -S "${inp_addpkg_pacman[@]}"
 	fi
 
 	pkgs_dependency=""
-	for f in $inp_pkgs $inp_addpkg_aur ;
+	for f in "${inp_pkgs[@]}" "${inp_addpkg_aur[@]}" ;
 	do
 		load_pkg "$f" || exit 1
 	done
