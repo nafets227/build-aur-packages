@@ -204,7 +204,7 @@ function build {
 	inp_addpkg_pacman="${INPUT_MISSING_PACMAN_DEPENDENCIES//$'\n'/ }"
 
 	# Get list of all packages with dependencies to install.
-	printf "AUR Packages requested to install: %s/n" "$inp_pkgs"
+	printf "AUR Packages requested to install: %s\n" "$inp_pkgs"
 	printf "AUR Packages to fix missing dependencies: %s\n" "$inp_addpkg_aur"
 	printf "Name of pacman repository: %s\n" "$INPUT_REPONAME"
 	printf "Keep existing packages: %s\n" "$INPUT_KEEP"
