@@ -46,7 +46,7 @@ inputs:
       should be preserved and not rebuild. Defaults to false, that is the
       way it used to work before this flag has been made available
     required: false
-    default: false
+    default: "false"
   arch:
     description: >
       A string describing the target architecture of the packages to be
@@ -58,7 +58,7 @@ inputs:
       A boolean.If set to true, any architecture setting in PKGDESC will be
       ignored.
     required: false
-    default: false
+    default: "false"
 outputs:
   updated:
     description: >
