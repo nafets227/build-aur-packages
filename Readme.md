@@ -45,7 +45,8 @@ The resulting repository information will be copied to the GitHub workspace.
 
 ## Development
 
-To build a package and create the corresponding repository files, build the docker image
+To build a package and create the corresponding repository files, build the
+docker image
 
 ```shell
     docker build -t builder .

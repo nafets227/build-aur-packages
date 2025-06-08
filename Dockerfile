@@ -1,7 +1,9 @@
 # Remember some variables are defined by Docker.
+#editorconfig-checker-disable-next-line
 # For details see https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
 # Short Summary:
-# TARGETPLATFORM - platform of the build result. Eg linux/amd64, linux/arm/v7, windows/amd64.
+# TARGETPLATFORM - platform of the build result.
+#     Eg linux/amd64, linux/arm/v7, windows/amd64.
 # TARGETOS - OS component of TARGETPLATFORM
 # TARGETARCH - architecture component of TARGETPLATFORM
 # TARGETVARIANT - variant component of TARGETPLATFORM

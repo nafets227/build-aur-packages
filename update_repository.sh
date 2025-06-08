@@ -163,7 +163,8 @@ function load_pkg {
 		return 0
 	fi
 
-	mkdir -p /home/builder/git/"$pkgbase" /home/builder/pkgsrc/"$pkgbase" || return 1
+	mkdir -p /home/builder/git/"$pkgbase" /home/builder/pkgsrc/"$pkgbase" \
+		|| return 1
 
 	# download from aur if only package name is given
 	if [ "${gitsrv:0:8}" != "https://" ] ; then
@@ -172,7 +173,11 @@ function load_pkg {
 
 	while true ; do
 		printf "trying to clone %s from %s\n" "$pkgbase" "$gitsrv"
-		if git clone -c init.defaultBranch=master "$gitsrv" /home/builder/git/"$pkgbase" ; then
+		if git clone \
+			-c init.defaultBranch=master \
+			"$gitsrv" \
+			/home/builder/git/"$pkgbase"
+		then
 			# success
 			break
 		else

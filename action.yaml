@@ -55,14 +55,15 @@ inputs:
     default: "amd64"
   arch-override:
     description: >
-      A boolean.If set to true, any architecture setting in PKGDESC will be ignored.
+      A boolean.If set to true, any architecture setting in PKGDESC will be
+      ignored.
     required: false
     default: false
 outputs:
   updated:
     description: >
-      A String ("true" or "false") to tell if anything has been updated and thus may need to be
-      uploaded. Always true if keep=false
+      A String ("true" or "false") to tell if anything has been updated and
+      thus may need to be uploaded. Always true if keep=false
     value: ${{ steps.run.outputs.updated }}
 runs:
   using: composite
@@ -78,14 +79,19 @@ runs:
     - name: Run Action container
       id: run
       shell: bash
+      env:
+        INPUT_MISSING_PACMAN_DEPENDENCIES: >
+          ${{ inputs.missing_pacman_dependencies }}
+        INPUT_MISSING_AUR_DEPENDENCIES: >
+          ${{ inputs.missing_aur_dependencies }}
       run: |
         /usr/bin/docker run --rm \
         --platform=${{ inputs.arch }} \
         --name build-aur-packages-run \
         --workdir /github/workspace \
         -e "INPUT_PACKAGES=${{ inputs.packages }}" \
-        -e "INPUT_MISSING_PACMAN_DEPENDENCIES=${{ inputs.missing_pacman_dependencies }}" \
-        -e "INPUT_MISSING_AUR_DEPENDENCIES=${{ inputs.missing_aur_dependencies }}" \
+        -e INPUT_MISSING_PACMAN_DEPENDENCIES \
+        -e INPUT_MISSING_AUR_DEPENDENCIES \
         -e "INPUT_REPONAME=${{ inputs.reponame }}" \
         -e "INPUT_REPODIR=${{ inputs.repodir }}" \
         -e "INPUT_KEEP=${{ inputs.keep }}" \
