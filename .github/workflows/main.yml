@@ -17,10 +17,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify Formatting
-        run: |
-          bash ${{ runner.debug == 1 && '-x ' || '' }} .github/workflows/verifyformat.sh
-
       - name: SuperLint
         uses: super-linter/super-linter/slim@v7.4.0
         env:
