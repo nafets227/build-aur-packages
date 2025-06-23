@@ -52,6 +52,10 @@ function import_pkgs {
 	ls -l "$GITHUB_WORKSPACE/$INPUT_REPODIR" 2>/dev/null || true
 	if [ -n "$(ls "$GITHUB_WORKSPACE/$INPUT_REPODIR" 2>/dev/null)" ] ; then
 		cp -a "$GITHUB_WORKSPACE/$INPUT_REPODIR"/* /home/builder/workspace/
+		# load preserved packages into pacman-db. This is needed if a
+		# to be built package has a dependency to a previously built package,
+		# especially if using versioned dependency, e.g. vdr-api=6
+		pacman -Sy
 	fi
 }
 
