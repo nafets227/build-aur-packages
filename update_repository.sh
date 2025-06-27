@@ -28,7 +28,10 @@ function setup_pacman {
 	# create an empty repository file
 	if [ ! -f "/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" ] ; then
 		tar cvfz "/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" \
-			-T /dev/null
+			-T /dev/null &&
+		touch --date=1970-01-01 \
+			"/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" &&
+		true || return 1
 	fi
 	if [ -f "/home/builder/workspace/$INPUT_REPONAME.db" ] ; then
 		rm "/home/builder/workspace/$INPUT_REPONAME.db"
