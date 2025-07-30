@@ -9,7 +9,7 @@ See [nafets227/archPackages](https://github.com/nafets227/archPackages) for a
 real world example
 
 Usage:
-Use this in a job that allows to run dockers (e.g. linux machine) like this:
+Use this in a job that allows to run Docker (e.g. Linux machine) like this:
 
 ```yaml
 jobs:
@@ -46,7 +46,7 @@ The resulting repository information will be copied to the GitHub workspace.
 ## Development
 
 To build a package and create the corresponding repository files, build the
-docker image
+Docker image
 
 ```shell
     docker build -t builder .
