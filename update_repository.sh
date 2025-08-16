@@ -180,6 +180,9 @@ function load_pkg {
 
 	while true ; do
 		printf "trying to clone %s from %s\n" "$pkgbase" "$gitsrv"
+		# DEBUG
+		export GIT_CURL_VERBOSE=1 GIT_TRACE=1
+		# end DEBUG
 		if git clone \
 			-c init.defaultBranch=master \
 			"$gitsrv" \
