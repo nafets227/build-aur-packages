@@ -29,7 +29,6 @@ jobs:
           VALIDATE_GIT_COMMITLINT: false
           VALIDATE_TRIVY: false
           USE_FIND_ALGORITHM: true
-          DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build_repository:
