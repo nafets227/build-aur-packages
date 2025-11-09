@@ -266,6 +266,16 @@ function build {
 			# ignore dummy package in brackets
 			continue
 		fi
+		# update version if it is a vcs version package
+		# i.e. pkgver function is defined
+		makepkg \
+			--dir "/home/builder/pkgsrc/$p" \
+			--nodeps \
+			--nobuild \
+			OPTIONS=-debug \
+			PKGDEST=/home/builder/workspace \
+			$aurparmarchoverrride \
+		|| return 1
 		mapfile -t pkgfiles < <(
 			makepkg \
 				--dir "/home/builder/pkgsrc/$p" \
@@ -284,6 +294,7 @@ function build {
 					--dir "/home/builder/pkgsrc/$p" \
 					--noconfirm \
 					--force \
+					--holdver \
 					PKGDEST=/home/builder/workspace \
 					$aurparmarchoverrride
 				repo-add \
