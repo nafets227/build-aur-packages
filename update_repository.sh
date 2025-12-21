@@ -25,6 +25,12 @@ function setup_pacman {
 	# create directories
 	mkdir -p /home/builder/workspace || return 1
 
+	# disable debug builds
+	cat >/etc/makepkg.conf.d/nafets227-build-aur-package-nodebug.conf \
+			<<-"EOF" || return 1
+		OPTIONS+=( '!debug' )
+		EOF
+
 	# create an empty repository file
 	if [ ! -f "/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" ] ; then
 		tar cvfz "/home/builder/workspace/$INPUT_REPONAME.db.tar.gz" \
@@ -272,7 +278,6 @@ function build {
 			--dir "/home/builder/pkgsrc/$p" \
 			--nodeps \
 			--nobuild \
-			OPTIONS=-debug \
 			PKGDEST=/home/builder/workspace \
 			$aurparmarchoverrride \
 		|| return 1
@@ -280,7 +285,6 @@ function build {
 			makepkg \
 				--dir "/home/builder/pkgsrc/$p" \
 				--packagelist \
-				OPTIONS=-debug \
 				PKGDEST=/home/builder/workspace \
 				$aurparmarchoverrride \
 			|| printf "###ERROR###\n"
