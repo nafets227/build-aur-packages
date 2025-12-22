@@ -26,6 +26,8 @@ ENV ARCHLINUX_ARG=x86_64
 
 FROM menci/archlinuxarm:base-devel AS base-linux-arm64
 ENV ARCHLINUX_ARG=aarch64
+RUN \
+	sed -i 's/#DisableSandbox/DisableSandbox/' /etc/pacman.conf
 
 FROM base-${TARGETOS}-${TARGETARCH}${TARGETVARIANT}
 
