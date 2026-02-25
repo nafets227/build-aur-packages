@@ -27,7 +27,7 @@ ENV ARCHLINUX_ARG=x86_64
 FROM menci/archlinuxarm:base-devel AS base-linux-arm64
 ENV ARCHLINUX_ARG=aarch64
 RUN \
-	sed -i 's/#DisableSandbox/DisableSandbox/' /etc/pacman.conf
+	sed -i 's/CheckSpace/#CheckSpace/' /etc/pacman.conf
 
 FROM base-${TARGETOS}-${TARGETARCH}${TARGETVARIANT}
 
@@ -37,7 +37,7 @@ FROM base-${TARGETOS}-${TARGETARCH}${TARGETVARIANT}
 #       For example, gcc (in base-devel) fails if it uses an old glibc (from
 #       base image).
 RUN \
-	sed -i 's/CheckSpace/#CheckSpace/' /etc/pacman.conf && \
+	sed -i 's/#DisableSandbox/DisableSandbox/' /etc/pacman.conf && \
 	pacman-key --init && \
 	pacman -Syu --noconfirm --needed sudo expect pacutils git && \
 	groupadd builder && \
