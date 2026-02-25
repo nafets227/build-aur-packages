@@ -3,4 +3,6 @@ rules:
   unpinned-uses:
     ignore:
       - main.yml
-
+  dependabot-cooldown:
+    ignore:
+      - dependabot.yaml

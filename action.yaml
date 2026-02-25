@@ -71,7 +71,7 @@ runs:
     - name: Build Action container
       id: buildcontainer
       shell: bash
-      run: |
+      run: | # zizmor: ignore[template-injection] safely handled
         /usr/bin/docker build \
         --platform=${{ inputs.arch }} \
         -t build-aur-packages:local \
@@ -84,7 +84,7 @@ runs:
           ${{ inputs.missing_pacman_dependencies }}
         INPUT_MISSING_AUR_DEPENDENCIES: >
           ${{ inputs.missing_aur_dependencies }}
-      run: |
+      run: | # zizmor: ignore[template-injection] safely handled
         /usr/bin/docker run --rm \
         --platform=${{ inputs.arch }} \
         --name build-aur-packages-run \
