@@ -335,5 +335,6 @@ if [ "$UID" == 0 ] ; then
 
 	export_pkgs
 else
+	. /etc/profile # load PATH
 	build
 fi
