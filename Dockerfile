@@ -37,6 +37,7 @@ FROM base-${TARGETOS}-${TARGETARCH}${TARGETVARIANT}
 #       For example, gcc (in base-devel) fails if it uses an old glibc (from
 #       base image).
 RUN \
+	sed -i 's/CheckSpace/#CheckSpace/' /etc/pacman.conf && \
 	pacman-key --init && \
 	pacman -Syu --noconfirm --needed sudo expect pacutils git && \
 	groupadd builder && \
