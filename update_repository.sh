@@ -252,7 +252,7 @@ function build {
 		load_pkg "$f" || exit 1
 	done
 
-	#overrride architecture if requested
+	#override architecture if requested
 	if [ "$INPUT_ARCH_OVERRIDE" == "true" ] ; then
 		aurparmarchoverrride="--ignorearch"
 	else

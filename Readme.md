@@ -27,7 +27,7 @@ jobs:
           libusb-compat
 ```
 
-This example wil build packages
+This example will build packages
 
 ```text
           azure-cli
