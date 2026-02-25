@@ -289,10 +289,10 @@ function build {
 				$aurparmarchoverrride \
 			|| printf "###ERROR###\n"
 			)
-		for pres in "${pkgfiles[@]}" ; do
-			if [ "$pres" == "###ERROR###" ] ; then
+		for pkg in "${pkgfiles[@]}" ; do
+			if [ "$pkg" == "###ERROR###" ] ; then
 				return 1
-			elif [ ! -f "$pres" ] ; then
+			elif [ ! -f "$pkg" ] ; then
 				makepkg \
 					--syncdeps \
 					--dir "/home/builder/pkgsrc/$p" \
